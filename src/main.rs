@@ -12,6 +12,9 @@ struct Cli {
     #[arg(short = 's', long = "show", default_value_t = false)]
     show: bool,
 
+    #[arg(short = 'k', long = "stop-on-error", default_value_t = false)]
+    stop_on_error: bool,
+
     #[arg(long = "command")]
     command_string: String,
 }
@@ -20,7 +23,7 @@ fn main() {
     let args = Cli::parse();
     let parts: Vec<&str> = args.command_string.split_whitespace().collect();
 
-    for i in 0..args.count {
+    'outer: for i in 0..args.count {
         if let Some(command) = parts.first() {
             let arguments = &parts[1..];
 
@@ -38,14 +41,21 @@ fn main() {
 
             match output {
                 Ok(o) => {
-                    if o.status.success() {
-                        println!("{}", String::from_utf8_lossy(&o.stdout));
-                    } else {
-                        eprintln!("{}", String::from_utf8_lossy(&o.stderr));
+                    println!("{}", String::from_utf8_lossy(&o.stdout));
+                    eprintln!("{}", String::from_utf8_lossy(&o.stderr));
+                    if let Some(code) = o.status.code() {
+                        if code != 0 && args.stop_on_error {
+                            println!("Stopping further iterations due to error.");
+                            break 'outer;
+                        }
                     }
                 }
                 Err(e) => {
                     eprintln!("Error executing command: {}", e);
+                    if args.stop_on_error {
+                        println!("Stopping further iterations due to error.");
+                        break 'outer;
+                    }
                 }
             }
             sleep(Duration::from_secs(args.interval));

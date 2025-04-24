@@ -1,5 +1,10 @@
 use clap::{Parser, arg};
-use std::{process::Command, thread::sleep, time::Duration};
+use std::{
+    io::{self, IsTerminal},
+    process::Command,
+    thread::sleep,
+    time::Duration,
+};
 
 #[derive(Parser)]
 struct Cli {
@@ -27,7 +32,9 @@ fn main() {
         if let Some(command) = parts.first() {
             let arguments = &parts[1..];
 
-            print!("{esc}c", esc = 27 as char);
+            if io::stdout().is_terminal() {
+                print!("{esc}c", esc = 27 as char);
+            }
             let output = Command::new(command).args(arguments).output();
 
             if args.show {

@@ -32,10 +32,11 @@ fn main() {
 
             if args.show {
                 println!(
-                    "iter: {}, every: {}s, command: {}\n",
+                    "iter: {}, every: {}s, command: {} {}\n",
                     i + 1,
                     args.interval,
-                    command
+                    command,
+                    arguments.join(" "),
                 )
             }
 

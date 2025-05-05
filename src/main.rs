@@ -1,4 +1,5 @@
 use clap::{Parser, arg};
+use retry::pretty_print;
 use std::{
     io::{self, IsTerminal},
     process::Command,
@@ -35,13 +36,19 @@ fn main() {
             if io::stdout().is_terminal() {
                 print!("{esc}c", esc = 27 as char);
             }
+
+            let start_us = std::time::SystemTime::now();
             let output = Command::new(command).args(arguments).output();
+            let end = std::time::SystemTime::now()
+                .duration_since(start_us)
+                .expect("to get current time");
 
             if args.show {
                 println!(
-                    "iter: {}, every: {}s, command: {} {}\n",
+                    "iter: {}, every: {}s, last duration: {}, command: {} {}\n",
                     i + 1,
                     args.interval,
+                    pretty_print::duration(end),
                     command,
                     arguments.join(" "),
                 )

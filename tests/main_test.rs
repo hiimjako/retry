@@ -47,9 +47,10 @@ fn test_show() -> Result<(), Box<dyn std::error::Error>> {
         .arg("--count")
         .arg("1");
     let assert = cmd.assert();
-    assert.success().stdout(predicates::str::contains(
-        "iter: 1, every: 0s, command: echo -n show_test\n\nshow_test\n",
-    ));
+    let pattern = predicates::str::is_match(
+        r"iter: 1, every: 0s, last duration: \d+ms, command: echo -n show_test\n\nshow_test\n",
+    )?;
+    assert.success().stdout(pattern);
     Ok(())
 }
 

@@ -21,19 +21,18 @@ struct Cli {
     #[arg(short = 'k', long = "stop-on-error", default_value_t = false)]
     stop_on_error: bool,
 
-    #[arg(long = "command")]
-    command_string: String,
+    #[arg(trailing_var_arg = true)]
+    command_string: Vec<String>,
 }
 
 fn main() {
     let args = Cli::parse();
-    let parts: Vec<&str> = args.command_string.split_whitespace().collect();
 
     let iterations = if args.count > 0 { args.count } else { u64::MAX };
 
     'outer: for i in 0..iterations {
-        if let Some(command) = parts.first() {
-            let arguments = &parts[1..];
+        if let Some(command) = args.command_string.first() {
+            let arguments = &args.command_string[1..];
 
             if io::stdout().is_terminal() {
                 print!("{esc}c", esc = 27 as char);

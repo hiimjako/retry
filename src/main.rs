@@ -30,51 +30,69 @@ fn main() {
 
     let iterations = if args.count > 0 { args.count } else { u64::MAX };
 
+    if args.command_string.len() == 0 {
+        println!("missing command, run --help for info");
+        return;
+    }
+
+    let actual_command_parts: Vec<String>;
+    if args.command_string.len() == 1 {
+        actual_command_parts = args.command_string[0]
+            .split(' ')
+            .map(|s| s.to_string())
+            .collect();
+    } else {
+        actual_command_parts = args.command_string;
+    }
+
+    let command = actual_command_parts.first().expect("missing command");
+    let arguments: Vec<String> = if actual_command_parts.len() > 1 {
+        actual_command_parts[1..].to_vec()
+    } else {
+        Vec::new()
+    };
+
     'outer: for i in 0..iterations {
-        if let Some(command) = args.command_string.first() {
-            let arguments = &args.command_string[1..];
+        if io::stdout().is_terminal() {
+            print!("{esc}c", esc = 27 as char);
+        }
 
-            if io::stdout().is_terminal() {
-                print!("{esc}c", esc = 27 as char);
-            }
+        let start_us = std::time::SystemTime::now();
+        let output = Command::new(command).args(&arguments).output();
+        let end = std::time::SystemTime::now()
+            .duration_since(start_us)
+            .expect("to get current time");
 
-            let start_us = std::time::SystemTime::now();
-            let output = Command::new(command).args(arguments).output();
-            let end = std::time::SystemTime::now()
-                .duration_since(start_us)
-                .expect("to get current time");
+        if args.show {
+            println!(
+                "iter: {}, every: {}s, last duration: {}, command: {} {}\n",
+                i + 1,
+                args.interval,
+                pretty_print::duration(end),
+                command,
+                arguments.join(" "),
+            )
+        }
 
-            if args.show {
-                println!(
-                    "iter: {}, every: {}s, last duration: {}, command: {} {}\n",
-                    i + 1,
-                    args.interval,
-                    pretty_print::duration(end),
-                    command,
-                    arguments.join(" "),
-                )
-            }
-
-            match output {
-                Ok(o) => {
-                    println!("{}", String::from_utf8_lossy(&o.stdout));
-                    eprintln!("{}", String::from_utf8_lossy(&o.stderr));
-                    if let Some(code) = o.status.code() {
-                        if code != 0 && args.stop_on_error {
-                            println!("Stopping further iterations due to error.");
-                            break 'outer;
-                        }
-                    }
-                }
-                Err(e) => {
-                    eprintln!("Error executing command: {}", e);
-                    if args.stop_on_error {
+        match output {
+            Ok(o) => {
+                println!("{}", String::from_utf8_lossy(&o.stdout));
+                eprintln!("{}", String::from_utf8_lossy(&o.stderr));
+                if let Some(code) = o.status.code() {
+                    if code != 0 && args.stop_on_error {
                         println!("Stopping further iterations due to error.");
                         break 'outer;
                     }
                 }
             }
-            sleep(Duration::from_secs(args.interval));
+            Err(e) => {
+                eprintln!("Error executing command: {}", e);
+                if args.stop_on_error {
+                    println!("Stopping further iterations due to error.");
+                    break 'outer;
+                }
+            }
         }
+        sleep(Duration::from_secs(args.interval));
     }
 }

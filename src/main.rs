@@ -9,10 +9,10 @@ use std::{
 
 #[derive(Parser)]
 struct Cli {
-    #[arg(short = 'i', long = "interval", default_value_t = 0)]
+    #[arg(short = 'i', long = "interval", default_value_t = 1)]
     interval: u64,
 
-    #[arg(short = 'n', long = "count", default_value_t = 1)]
+    #[arg(short = 'n', long = "count", default_value_t = 0)]
     count: u64,
 
     #[arg(short = 's', long = "show", default_value_t = false)]
@@ -29,7 +29,9 @@ fn main() {
     let args = Cli::parse();
     let parts: Vec<&str> = args.command_string.split_whitespace().collect();
 
-    'outer: for i in 0..args.count {
+    let iterations = if args.count > 0 { args.count } else { u64::MAX };
+
+    'outer: for i in 0..iterations {
         if let Some(command) = parts.first() {
             let arguments = &parts[1..];
 
